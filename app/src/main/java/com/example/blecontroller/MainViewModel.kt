@@ -1,10 +1,20 @@
 package com.example.blecontroller
 
 import android.app.Application
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -36,11 +46,54 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var macroJob: Job? = null
 
+    private val MACROS_KEY = stringPreferencesKey("custom_macros")
+
     init {
-        loadDefaultMacros()
+        loadMacros()
     }
 
-    private fun loadDefaultMacros() {
+    private fun loadMacros() {
+        viewModelScope.launch {
+            val context = getApplication<Application>().applicationContext
+            context.dataStore.data.collect { preferences ->
+                val macrosJson = preferences[MACROS_KEY]
+                if (macrosJson != null) {
+                    try {
+                        val parsed = Json.decodeFromString<List<MacroSequence>>(macrosJson)
+                        _sequences.value = parsed
+                    } catch (e: Exception) {
+                        _sequences.value = getDefaultMacros()
+                    }
+                } else {
+                    val defaults = getDefaultMacros()
+                    _sequences.value = defaults
+                    saveMacros(defaults)
+                }
+            }
+        }
+    }
+
+    private fun saveMacros(macros: List<MacroSequence>) {
+        viewModelScope.launch {
+            val context = getApplication<Application>().applicationContext
+            context.dataStore.edit { settings ->
+                settings[MACROS_KEY] = Json.encodeToString(macros)
+            }
+        }
+    }
+
+    fun updateSequence(sequence: MacroSequence) {
+        val currentList = _sequences.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == sequence.id }
+        if (index != -1) {
+            currentList[index] = sequence
+        } else {
+            currentList.add(sequence)
+        }
+        saveMacros(currentList)
+    }
+
+    private fun getDefaultMacros(): List<MacroSequence> {
         val emergencyStrobe = MacroSequence(
             id = "1",
             name = "Emergency Red/Blue Strobe",
@@ -78,7 +131,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repeatCount = 0
         )
 
-        _sequences.value = listOf(emergencyStrobe, cyberpunkPulse, lightningStrike)
+        return listOf(emergencyStrobe, cyberpunkPulse, lightningStrike)
     }
 
     fun startScan() = bleEngine.startScan()

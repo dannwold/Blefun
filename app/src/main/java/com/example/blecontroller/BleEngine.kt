@@ -243,10 +243,12 @@ class BleEngine(private val context: Context) {
                             else BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
             gatt.writeCharacteristic(characteristic, bytes, writeType)
         } else {
-            characteristic.value = bytes
+            @Suppress("DEPRECATION")
+            characteristic.setValue(bytes)
             characteristic.writeType = if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE != 0)
                             BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
                             else BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            @Suppress("DEPRECATION")
             gatt.writeCharacteristic(characteristic)
         }
 
@@ -275,7 +277,9 @@ class BleEngine(private val context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 gatt.writeDescriptor(descriptor, payload)
             } else {
-                descriptor.value = payload
+                @Suppress("DEPRECATION")
+                descriptor.setValue(payload)
+                @Suppress("DEPRECATION")
                 gatt.writeDescriptor(descriptor)
             }
 

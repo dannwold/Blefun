@@ -1,5 +1,8 @@
 package com.example.blecontroller
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class MacroStep(
     val id: String,
     val label: String,
@@ -35,6 +38,7 @@ data class MacroStep(
     }
 }
 
+@Serializable
 data class MacroSequence(
     val id: String,
     val name: String,
