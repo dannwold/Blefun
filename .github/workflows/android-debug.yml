@@ -2,9 +2,9 @@ name: Android Debug APK CI
 
 on:
   push:
-    branches: [ "**" ]
+    branches: ["**"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   workflow_dispatch:
 
 jobs:
@@ -25,9 +25,15 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            cmdline-tools;latest
+            platform-tools
+            platforms;android-34
+            build-tools;34.0.0
 
-      - name: Accept Licenses
-        run: yes | sdkmanager --licenses || true
+      - name: Accept Android Licenses
+        run: yes | "$ANDROID_HOME"/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Setup Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
@@ -36,7 +42,7 @@ jobs:
 
       - name: Generate Gradle Wrapper if Missing
         run: |
-          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+          if [ ! -f "gradlew" ]; then
             gradle wrapper --gradle-version 8.7
           fi
           chmod +x ./gradlew
